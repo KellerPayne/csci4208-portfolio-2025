@@ -1,3 +1,1 @@
 Overall, HTML seems to be a very simple language to learn and work with. The most difficult thing about writing in HTML is remembering to close the tags if the IDE doesn't do it for you. The tags are generally easy to remember, and the use of the anchor tags are super helpful, especially since you can wrap other objects/tags within them. Wrapping images in anchor tags is what helped make my story/game a little bit more interactive, especially in the final room.
-
-The use of CSS to style it made it even more appealing. CSS kind of reminds me of a regular programming language. It's similar to creating a dictionary in python when doing data analysis. The CSS was exceptionally useful when changing from the default, boilerplate chrome fonts.
