@@ -1,0 +1,60 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1>Inside Secondary Cryo Module</h1>
+        <hr>
+        <img src="assets/cryopods.jpg" width="480" id="Pods">
+        <p>You enter into the Secondary Cryo Module.</p>
+        <p>You are relieved to see that the cryo pods are still functioning properly. However, you noticed the fire coming out from behind one of the wall panels.</p>
+        <p id="status">You use your axe to detach the panel from its frame.</p>
+        <img src="assets/wallpanel.jpg" width="480" onclick="showFire()" id="sceneImage">
+        <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <script>
+            inventory.src += location.search;
+
+            var queryString = new URLSearchParams(location.search);
+
+            function showFire() {
+                axe = 0;
+                queryString.set("axe", axe);
+                document.getElementById("sceneImage").src='assets/fire.jpg';
+                document.getElementById("status").textContent = "You need to extinguish the fire!";
+                document.getElementById("inventory").src = "inventory.html?" + queryString.toString();
+                document.getElementById("sceneImage").onclick = extinguish;
+            }
+            function extinguish() {
+                fe = 0;
+                document.getElementById("sceneImage").src = "assets/smoke.jpg";
+                document.getElementById("status").textContent="You have put out the fire!";
+                queryString.set("fe", fe);
+                document.getElementById("inventory").src = "inventory.html?" + queryString.toString();
+                document.getElementById("sceneImage").onclick= radioCall;
+            }
+
+            function radioCall() {
+                document.body.innerHTML = (
+                    `<h1>Inside Secondary Cryo Module</h1>
+                    <hr>
+                    <img src="assets/radio.jpg" width="480">
+                    <p>Just then, you hear your radio beep.</p>
+                    <p>You quickly pulled it from your belt and realized that someone was transmitting a message, but it was not on Houston's frequency.</p>
+                    <p>You couldn't quite make out what the person was saying, but you could definitely hear pieces of words in English being transmitted brokenly.</p>
+                    <p>You quickly send out another broadcast, ensuring you press the button on your radio to activate your ship's emergency location beacon.</p>
+                    <p>Will you and your crew be safe afterall?</p>
+                    <h4>To be continued...</h4>
+                    <a href="index.html">
+                        <button>You win, for now!</button>
+                    </a>`
+                );
+            }
+        </script>
+    </body>
+</html>

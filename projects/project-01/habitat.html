@@ -1,0 +1,43 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1>Habitat Module Door</h1>
+        <hr>
+        <img src="assets/doorClosed.jpg" width="480" id="closedDoor">
+        <p>As you approach the Habitat Module door and reach out to scan your hand on the biometric scanner, you can feel heat radiating from the door.</p>
+        <p>If you open it, you risk the fire within escaping into the connection module, which isn't as sturdily built as the Habitat Module.</p>
+        <h4>Make your decision...</h4>
+        <a href="#" onclick="die()">
+            <button>Open Habitat Module Door</button>
+        </a>
+        <br>
+        <a href="cryo2.html" id="secondCryo">
+            <button>Continue to Secondary Cryo Module</button>
+        </a>
+        <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <script>
+            inventory.src += location.search;
+            secondCryo.href += location.search;
+
+            function die() {
+                document.body.innerHTML = (
+                    `<h1>You Died!</h1>
+                    <img src="assets/spaceshipexplosion.gif" width="480">
+                    <p>Upon opening the door, the conflagration was fed even more oxygen and exploded through the Connection Module.</p>
+                    <a href='index.html'><h4>Game Over!</h4></a>
+                    <audio autoplay>
+                        <source src="assets/explosion.mp3">
+                    </audio>`
+                );
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/> 
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1>Emergency Gear</h1>
+        <hr>
+        <a id="cabinetOpen" href="#">
+            <img id="cabinet" src="assets/supplies.jpg" width="480" onclick="getSupplies()">
+        </a>
+        <p>You return to the cockpit and locate the Emergency Supply Cabinet.</p>
+        <p>Inside, you find a fire extinguisher, a fire axe, water, and food.</p>
+        <h4>Now that you have your supplies, you need to head to the Comms Module to send out an emergency broadcast...</h4>
+        <a id="comms" href="comms.html">
+            <button>Go to Comms Module</button>
+        </a>
+        <br>
+        <br>
+        <a id="assess" href="assess.html">
+            <button>Back</button>
+        </a>
+        <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <script>
+            inventory.src += location.search;
+            comms.href += location.search;
+            assess.href += location.search;
+
+            var queryString = new URLSearchParams(location.search);
+            var fe = +queryString.get("fe");
+            var axe = +queryString.get("axe");
+
+            function getSupplies() {
+                if(fe == 1 && axe == 1 && water == 1 && food == 1){
+                    return;
+                }
+                else{ 
+                queryString.set("fe", fe+1);
+                queryString.set("axe", axe+1);
+                location.search = queryString;
+                }     
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,40 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+
+    </head>
+    <body>
+        <h1>Assess Your Situation</h1>
+        <hr>
+        <img src="assets/cockpit.gif">
+        <p>You have to understand where you are, how long you have left on your trip, and how badly damaged your ship is to make a plan!</p>
+        <h4>What do you want to assess first?</h4>
+        <a href="map.html" id="map">
+            <button>Check your location, date, and time</button>
+        </a>
+        <br>
+        <br>
+        <a href="ship-damage.html" id="damage">
+            <button>Check your ship damage screen</button>
+        </a>
+        <br>
+        <br>
+        <a href="gear.html" id="gear">
+            <button>Gather Emergency Gear</button>
+        </a>
+        <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <script>
+            inventory.src += location.search;
+            gear.href += location.search;
+            damage.href += location.search;
+            map.href += location.search;
+            
+        </script>
+    </body>
+</html>

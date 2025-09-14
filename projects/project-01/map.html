@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1>Star Map</h1>
+        <hr>
+        <img src="assets/starmap.gif" width="480">
+        <p>You take a look at the star map. Unfortunately, you don't recognize your location in space. </p>
+        <p>The autopilot must have encountered issues a while ago.</p>
+        <p>You take notice of the date and time.</p>
+        <h4>August 16, 3255</h4>
+        <h4>1300 hours Houston Standard Time</h4>
+        <p>You start to understand just how bad the situation is...</p>
+        <p>You were asleep for only 15 years. You were supposed to remain in cryo sleep for another 65 years!</p>
+        <h4>You next need to check the ship's damage.</h4>
+        <a id="assess" href="assess.html">
+            <button>Back</button>
+        </a>
+        <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <hr>
+        <script>
+            inventory.src += location.search;
+            assess.href += location.search;
+        </script>
+    </body>
+</html>

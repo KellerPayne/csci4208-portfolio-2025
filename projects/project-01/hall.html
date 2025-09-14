@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1>Connection Module</h1>
+        <img src="assets/hallExplosion.jpg" width="480">
+        <p>As you are floating down the hallway, a fire erupts right in front of you.</p>
+        <p>You quickly extinguish it using your fire extinguisher.</p>
+        <p>Once the fire is out, you realize that your extinguisher is now empty.</p>
+        <p>Filled with a sense of dread because your extinguisher is now empty, you continue down the hall.</p>
+        <p>As you pass through the still hot portion of the Connection Module, you glimpse a red cylinder attached to the wall.</p>
+        <p>Relieved that you have another fire extinguisher in your posession, you continue towards the Habitat Module.</p>
+        <a href="habitat.html" id="habitat">
+            <button>Go to Habitat Module</button>
+        </a>
+        <a href="assess.html" id="assess">
+            <button>Back</button>
+        </a>
+        <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <script>
+            inventory.src += location.search;
+            habitat.href += location.search;
+            assess.href += location.search;
+        </script>
+    </body>
+</html>

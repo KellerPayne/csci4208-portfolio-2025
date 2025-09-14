@@ -1,0 +1,58 @@
+/* This is the CSS for HW2, which is the CSS for HW1 */
+body {
+    background-color: gray;
+    text-align: center;
+}
+button {
+    background-color: lightgray;
+}
+
+button:hover {
+    background-color: gold;
+}
+
+button:active {
+    background-color: aqua;
+}
+
+h1 {
+    font-family: "Audiowide", sans-serif;
+}
+
+img {
+    width:480;
+    height:auto;
+}
+
+.inventory-body {
+    background-color: white;
+}
+
+th, td {
+    text-align: center;
+    padding: 5px;
+}
+
+#cabinet:hover {
+    filter: brightness(2);
+}
+
+#cabinet:active {
+    filter:brightness(0.2);
+}
+
+#scanner:hover {
+    filter: brightness(2);
+}
+
+#scanner:active {
+    filter: brightness(0.2);
+}
+
+#sceneImage:hover {
+    filter: brightness(2);
+}
+
+#sceneImage:active {
+    filter: brightness(0.2);
+}

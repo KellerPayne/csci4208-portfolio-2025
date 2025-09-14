@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <h1>Secondary Cryo Module Door</h1>
+        <hr>
+        <img src="assets/doorClosed.jpg" width="480">
+        <p>You approach the door for the Secondary Cryo Module.</p>
+        <p>Before scanning your hand, you place your palm on the door to see if you can feel heat.</p>
+        <p>Relieved to not feel even a hint of warmth, you scan your hand on the biometric scanner.</p>
+        <a href="cryo2inside.html" id="scanner">
+            <img src="assets/biometricscanner.jpg" width="240">
+        </a>
+        <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <script>
+            inventory.src += location.search;
+            scanner.href += location.search;
+        </script>
+    </body>
+</html>

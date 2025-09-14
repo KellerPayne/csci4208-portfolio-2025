@@ -1,0 +1,40 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Asimovian&family=Audiowide&display=swap" rel="stylesheet">
+
+    </head>
+    <body>
+       <h1>Comms Module Entrance</h1>
+       <hr> 
+       <img src="assets/doorClosed.jpg" width="480">
+       <p>You approach the Comms Module door. You can't tell how bad the damage is yet.</p>
+       <p>You place your hand on the biometric scanner to open the door.</p>
+       <p>As the door opens, you are relieved to see that the module is mostly intact. There is a small fire coming out of one of the backup power
+            panels that you were able to extinguish quickly with your fire extinguisher. Fortunately, there is plenty enough fire retardant left
+            inside to extinguish another fire if needed.</p>
+        <p>You grab a portable communication device and set it to the emergency frequency. You send out a mayday message, which you know will be
+            broadcasted to any ships within range, but it will also be fed through the ship's communication module and sent back to command.
+        </p>
+        <p>Now that your emergency broadcast has been sent, you need to try and save the habitat module and the other crew members in the secondary
+            cryo module.
+        </p>
+        <a href="hall.html" id="hall">
+            <button>Go to Connection Module</button>
+        </a>
+        <a href="assess.html" id="assess">
+            <button>Back</button>
+        </a>
+         <hr>
+        <iframe src="inventory.html" id="inventory" height="100" width="80"></iframe>
+        <script>
+            inventory.src += location.search;
+            hall.href += location.search;
+            assess.href += location.search;
+        </script>
+    </body>
+</html>

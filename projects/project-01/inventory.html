@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <title>Lost in Space</title>
+        <link href="assets/LostInSpace.png" rel="icon"/>
+        <link rel="stylesheet" href="styles/styles.css"/>
+    </head>
+    <body class="inventory-body">
+        Inventory:
+        <table>
+            <tr>
+                <th>&#129519;</th>
+                <th>&#128296;</th>
+            </tr>
+            <tr>
+                <td id="fe">0</td>
+                <td id="axe">0</td>
+            </tr>
+        </table>
+
+        <script>
+            var queryString = new URLSearchParams(location.search);
+            fe.innerText = queryString.get("fe");
+            axe.innerText = queryString.get("axe");
+        </script>
+    </body>
+</html>
