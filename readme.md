@@ -30,7 +30,7 @@
 | Lab-01 — HTML-first Interactive Game (minimal JS) [#1](https://github.com/KellerPayne/csci4208-portfolio-2025/issues/1) | `lab-01` | closed |
 | Lab-02 — CSS: Crash Course [#2](https://github.com/KellerPayne/csci4208-portfolio-2025/issues/2) | `lab-02` | closed |
 | Lab-03 — Bootstrap: Responsive Portfolio [#3](https://github.com/KellerPayne/csci4208-portfolio-2025/issues/3) | `lab-03` | closed |
-| Project-01 — Interactive Game in HTML & CSS [#4](https://github.com/KellerPayne/csci4208-portfolio-2025/issues/4) | `project-01` | open |
+| Project-01 — Interactive Game in HTML & CSS [#4](https://github.com/KellerPayne/csci4208-portfolio-2025/issues/4) | `project-01` | closed |
 <!-- STATUS:END -->
 
 
