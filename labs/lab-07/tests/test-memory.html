@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MockDB Tests — Memory Adapter</title>
+  <link rel="stylesheet" href="./console.css" />
+  <style> body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:900px;margin:2rem auto} </style>
+</head>
+<body>
+  <h1>MockDB Tests — Memory Adapter</h1>
+  <p>This proves your DB contract (CRUD) without any persistence layer. Swap to local/jsonbin once green.</p>
+  <ol id="out"></ol>
+
+  <script type="module">
+    import { runTests } from "./test-runner.js";
+    import { useAdapter, boot, getDoc, findMany, findOne, insertOne, updateOne, deleteOne } from "./db-tracer.js";
+    import { memoryAdapter } from "../scripts/adapters/memoryAdapter.js";
+
+    useAdapter(memoryAdapter);
+
+    await runTests("Boot (memory)", async ({assert}) => {
+      const doc = await boot();
+      assert(!!doc.users?.length, "seed users exist");
+      assert(Array.isArray(doc.todos), "todos array present");
+    });
+
+    await runTests("CREATE (memory)", async ({assert}) => {
+      const before = getDoc().users.length;
+      const rec = await insertOne("users", { name: "Carol" });
+      const after = getDoc().users.length;
+      assert(!!rec.id, "insert returns record with id");
+      assert(after === before + 1, "user count increased");
+    });
+
+    await runTests("READ (memory) -- Find Many", async ({assert}) => {
+      const users = findMany("users");
+      assert(Array.isArray(users), "findMany returns array");
+    });
+
+    await runTests("READ (memory) -- Find One", async ({assert}) => {
+      const carol = findOne("users", u => u.name === "Carol");
+      assert(!!carol, "findOne locates Carol");
+    });
+
+    await runTests("UPDATE (memory)", async ({assert}) => {
+      const t = await insertOne("todos", { title:"Draft syllabus", done:false, assignedTo:"u-bob", projectId:"p-1", tagIds:[], subtasks:[], commentIds:[] });
+      const n = await updateOne("todos", t.id, { done:true });
+      const updated = findOne("todos", x => x.id === t.id);
+      assert(n === 1, "updateOne returns 1");
+      assert(updated.done === true, "todo marked done");
+    });
+
+    await runTests("DELETE (memory)", async ({assert}) => {
+      const tag = await insertOne("tags", { name: "temp-tag" });
+      const d = await deleteOne("tags", tag.id);
+      const still = findOne("tags", x => x.id === tag.id);
+      assert(d === 1, "deleteOne returns 1");
+      assert(!still, "record removed");
+    });
+  </script>
+</body>
+</html>

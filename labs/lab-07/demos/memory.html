@@ -1,0 +1,136 @@
+<!-- demos/memory.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mock DB API Console — In-Memory</title>
+  <link rel="stylesheet" href="./demo.css" />
+  <style> body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:1000px;margin:2rem auto} </style>
+</head>
+<body>
+  <h1>API Console — In-Memory Adapter</h1>
+  <p>Prove the DB contract (CRUD) with zero persistence. Then switch to LocalStorage and JSONBin.</p>
+
+  <div class="grid">
+    <div class="card" id="bootCard">
+      <div class="controls">
+        <button id="bootBtn" class="run-btn">Boot / Reload</button>
+        <span id="stamp"></span>
+      </div>
+      <div id="bootConsole"></div>
+    </div>
+
+    <div class="card">
+      <label><strong>getDoc</strong> <small>(no input)</small></label>
+      <div class="controls"><button id="getDocBtn" class="run-btn">Run</button></div>
+      <div id="getDocConsole"></div>
+    </div>
+
+    <div class="card">
+      <label><strong>findMany</strong>
+        <small>{ "col": "todos", "where": { "field": "assignedTo", "op": "eq", "value": "u-alice" } }</small>
+      </label>
+      <textarea id="findManyInput">{ "col": "todos", "where": { "field": "assignedTo", "op": "eq", "value": "u-alice" } }</textarea>
+      <div class="controls"><button id="findManyBtn" class="run-btn">Run</button></div>
+      <div id="findManyConsole"></div>
+    </div>
+
+    <div class="card">
+      <label><strong>findOne</strong>
+        <small>{ "col": "users", "where": { "field": "name", "op": "eq", "value": "Alice" } }</small>
+      </label>
+      <textarea id="findOneInput">{ "col": "users", "where": { "field": "name", "op": "eq", "value": "Alice" } }</textarea>
+      <div class="controls"><button id="findOneBtn" class="run-btn">Run</button></div>
+      <div id="findOneConsole"></div>
+    </div>
+
+    <div class="card">
+      <label><strong>insertOne</strong>
+        <small>{ "col": "todos", "data": { "title": "From console", "done": false, "assignedTo": "u-bob", "projectId":"p-1", "tagIds":[], "subtasks":[], "commentIds":[] } }</small>
+      </label>
+      <textarea id="insertInput">{ "col": "todos", "data": { "title": "From console", "done": false, "assignedTo": "u-bob", "projectId":"p-1", "tagIds":[], "subtasks":[], "commentIds":[] } }</textarea>
+      <div class="controls"><button id="insertBtn" class="run-btn">Run</button></div>
+      <div id="insertConsole"></div>
+    </div>
+
+    <div class="card">
+      <label><strong>updateOne</strong>
+        <small>{ "col": "todos", "id": "t-1", "patch": { "done": true } }</small>
+      </label>
+      <textarea id="updateInput">{ "col": "todos", "id": "t-1", "patch": { "done": true } }</textarea>
+      <div class="controls"><button id="updateBtn" class="run-btn">Run</button></div>
+      <div id="updateConsole"></div>
+    </div>
+
+    <div class="card">
+      <label><strong>deleteOne</strong>
+        <small>{ "col": "tags", "id": "t-setup" }</small>
+      </label>
+      <textarea id="deleteInput">{ "col": "tags", "id": "t-setup" }</textarea>
+      <div class="controls"><button id="deleteBtn" class="run-btn">Run</button></div>
+      <div id="deleteConsole"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createConsoleSink, gentleParse, buildPredicate, pretty } from "./demo-runner.js";
+    import * as api from "../tests/db-tracer.js";
+    import { memoryAdapter } from "../scripts/adapters/memoryAdapter.js";
+
+    api.useAdapter(memoryAdapter);
+
+    const bootSink = createConsoleSink(document.getElementById("bootConsole"));
+    const stamp = document.getElementById("stamp");
+
+    async function bootNow(){
+      const doc = await api.boot();
+      stamp.textContent = "rev=" + doc.rev + " • updated " + new Date(doc.updatedAt).toLocaleString();
+      bootSink.log("Booted memory doc with " + (doc.users?.length ?? 0) + " users, " + (doc.todos?.length ?? 0) + " todos");
+    }
+    document.getElementById("bootBtn").addEventListener("click", bootNow);
+    await bootNow();
+
+    function hook(btnId, inputId, sinkId, runner){
+      const sink = createConsoleSink(document.getElementById(sinkId));
+      document.getElementById(btnId).addEventListener("click", async () => {
+        try { await runner(sink); } catch (e) { sink.log("ERROR: " + e.message); }
+      });
+    }
+
+    hook("getDocBtn", null, "getDocConsole", async (sink) => {
+      const doc = api.getDoc();
+      sink.log(pretty(doc));
+    });
+
+    hook("findManyBtn", "findManyInput", "findManyConsole", async (sink) => {
+      const { col, where } = gentleParse(document.getElementById("findManyInput").value);
+      const rows = api.findMany(col, buildPredicate(where));
+      sink.log(pretty(rows));
+    });
+
+    hook("findOneBtn", "findOneInput", "findOneConsole", async (sink) => {
+      const { col, where } = gentleParse(document.getElementById("findOneInput").value);
+      const row = api.findOne(col, buildPredicate(where));
+      sink.log(pretty(row));
+    });
+
+    hook("insertBtn", "insertInput", "insertConsole", async (sink) => {
+      const { col, data } = gentleParse(document.getElementById("insertInput").value);
+      const rec = await api.insertOne(col, data);
+      sink.log(pretty(rec));
+    });
+
+    hook("updateBtn", "updateInput", "updateConsole", async (sink) => {
+      const { col, id, patch } = gentleParse(document.getElementById("updateInput").value);
+      const n = await api.updateOne(col, id, patch);
+      sink.log("updated=" + n);
+    });
+
+    hook("deleteBtn", "deleteInput", "deleteConsole", async (sink) => {
+      const { col, id } = gentleParse(document.getElementById("deleteInput").value);
+      const n = await api.deleteOne(col, id);
+      sink.log("deleted=" + n);
+    });
+  </script>
+</body>
+</html>

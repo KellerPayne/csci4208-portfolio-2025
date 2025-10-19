@@ -1,0 +1,405 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mock DB API Console — Sync (Local ⇄ JSONBin)</title>
+  <link rel="stylesheet" href="./demo.css" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:1000px;margin:2rem auto}
+    .section-title{margin-top:2rem}
+    .hint{opacity:.75;font-size:.9rem}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem}
+    .pill{font-size:.8rem;padding:.1rem .45rem;border:1px solid #dcdcdc;border-radius:999px}
+  </style>
+</head>
+<body>
+  <h1>API Console — Sync Local Storage ⇄ JSONBin</h1>
+  <p class="hint">
+    Boot both adapters, then click <strong>Sync Up</strong> (Local → Cloud) or <strong>Sync Down</strong> (Cloud → Local).
+    Use the <em>Active Adapter</em> toggle to run CRUD on one side and observe the sync effect on the other.
+  </p>
+
+  <!-- Boot & Adapter Select -->
+  <h2 class="section-title">Boot & Select Active Adapter</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="toolbar">
+        <button id="bootLocal" class="run-btn">Boot Local</button>
+        <span id="localStamp" class="hint"></span>
+      </div>
+      <div id="localConsole"></div>
+      <hr class="sep" />
+      <div class="toolbar">
+        <input id="binId" type="text" placeholder="BIN_ID (PUBLIC)" style="min-width:360px" />
+        <button id="bootCloud" class="run-btn">Boot Cloud</button>
+        <span id="cloudStamp" class="hint"></span>
+      </div>
+      <div id="cloudConsole"></div>
+      <hr class="sep" />
+      <div class="toolbar">
+        <label>Active Adapter:</label>
+        <button id="useLocal"  class="run-btn">Local</button>
+        <button id="useCloud"  class="run-btn">Cloud</button>
+        <span id="activeLabel" class="hint"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inspect -->
+  <h2 class="section-title">Inspect Each Side</h2>
+  <div class="two-col">
+    <div class="card">
+      <label><strong>getDoc (Local)</strong></label>
+      <div class="controls"><button id="getLocal" class="run-btn">Run</button></div>
+      <div id="getLocalConsole"></div>
+    </div>
+    <div class="card">
+      <label><strong>getDoc (Cloud)</strong></label>
+      <div class="controls"><button id="getCloud" class="run-btn">Run</button></div>
+      <div id="getCloudConsole"></div>
+    </div>
+  </div>
+
+  <!-- Sync Actions -->
+  <h2 class="section-title">Sync Actions</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="toolbar">
+        <button id="syncUp" class="run-btn">Sync Up (Local → Cloud)</button>
+        <button id="syncDown" class="run-btn">Sync Down (Cloud → Local)</button>
+      </div>
+      <div id="syncConsole"></div>
+      <p class="hint">If Cloud save throws “Remote is newer…”, click <strong>Boot Cloud</strong> and retry.</p>
+    </div>
+  </div>
+
+  <!-- Quick CRUD on Active Adapter -->
+  <h2 class="section-title">Quick CRUD on Active Adapter</h2>
+  <div class="grid">
+    <div class="card">
+      <label><strong>insertOne</strong>
+        <small>{ "col": "tags", "data": { "name": "from-active" } }</small>
+      </label>
+      <textarea id="insertInput">{ "col": "tags", "data": { "name": "from-active" } }</textarea>
+      <div class="controls"><button id="insertBtn" class="run-btn">Run</button></div>
+      <div id="insertConsole"></div>
+    </div>
+
+    <div class="card">
+      <label><strong>updateOneOps</strong>
+        <small>{
+          "col":"todos","id":"<todoId>",
+          "ops":{"$addToSet":{"tagIds":"<tagId>"}, "$set":{"done":true}}
+        }</small>
+      </label>
+      <textarea id="updateOpsInput">{
+  "col": "todos",
+  "id": "<todoId>",
+  "ops": { "$addToSet": { "tagIds": "<tagId>" }, "$set": { "done": true } }
+}</textarea>
+      <div class="controls"><button id="updateOpsBtn" class="run-btn">Run</button></div>
+      <div id="updateOpsConsole"></div>
+    </div>
+  </div>
+
+  <!---
+  <script type="module">
+    import { createConsoleSink, gentleParse, pretty } from "./demo-runner.js";  /* :contentReference[oaicite:1]{index=1} */
+    import * as api from "../tests/db-tracer.js";
+    import { LocalStorageAdapter } from "../scripts/adapters/localStorageAdapter.js";
+    import { jsonBinAdapter }     from "../scripts/adapters/jsonBinAdapter.js";
+    import { syncUp, syncDown }   from "../scripts/sync.js";
+    import { findOneBy, updateOneOps, upsertOne } from "../scripts/db.js";
+
+    const localSink     = createConsoleSink(document.getElementById("localConsole"));
+    const cloudSink     = createConsoleSink(document.getElementById("cloudConsole"));
+    const getLocalSink  = createConsoleSink(document.getElementById("getLocalConsole"));
+    const getCloudSink  = createConsoleSink(document.getElementById("getCloudConsole"));
+    const syncSink      = createConsoleSink(document.getElementById("syncConsole"));
+    const insertSink    = createConsoleSink(document.getElementById("insertConsole"));
+    const updateOpsSink = createConsoleSink(document.getElementById("updateOpsConsole"));
+
+    let localAdapter = null;
+    let cloudAdapter = null;
+    let active = "local"; // "local" or "cloud"
+    const activeLabel = document.getElementById("activeLabel");
+    function setActive(which) {
+      active = which;
+      if (which === "local") {
+        api.useAdapter(localAdapter); activeLabel.textContent = "Active: Local";
+      } else {
+        api.useAdapter(cloudAdapter); activeLabel.textContent = "Active: Cloud";
+      }
+    }
+
+    // Boot Local
+    document.getElementById("bootLocal").addEventListener("click", async () => {
+      localAdapter = new LocalStorageAdapter({ key: "mockdb:doc" });
+      api.useAdapter(localAdapter);
+      const doc = await api.boot();
+      document.getElementById("localStamp").textContent =
+        `Local rev=${doc.rev} • updated ${new Date(doc.updatedAt).toLocaleString()}`;
+      localSink.log("Booted LocalStorage.");
+      setActive("local");
+    });
+
+    // Boot Cloud
+    document.getElementById("bootCloud").addEventListener("click", async () => {
+      const id = document.getElementById("binId").value.trim();
+      if (!id) { cloudSink.log("Enter BIN_ID first."); return; }
+      cloudAdapter = jsonBinAdapter(id);
+      // Boot cloud in-place to populate demo entities (switch temporarily)
+      api.useAdapter(cloudAdapter);
+      const doc = await api.boot();
+      document.getElementById("cloudStamp").textContent =
+        `Cloud rev=${doc.rev} • updated ${new Date(doc.updatedAt).toLocaleString()}`;
+      cloudSink.log("Booted JSONBin.");
+      // Fill placeholders using cloud as source of truth
+      await ensureDemoEntities();
+      // Switch back to local if it exists
+      if (localAdapter) { api.useAdapter(localAdapter); setActive("local"); await api.boot(); }
+    });
+
+    async function ensureDemoEntities() {
+      // Ensure a demo todo and tag exist in the CURRENT active adapter
+      const first = api.findMany("todos")[0];
+      let todoId = first?.id;
+      if (!todoId) {
+        const t = await api.insertOne("todos", {
+          title:"Sync demo todo", done:false, assignedTo:"u-alice",
+          projectId:"p-1", tagIds:[], subtasks:[], commentIds:[]
+        });
+        todoId = t.id;
+      }
+      // Ensure a tag exists
+      const tag = findOneBy("tags", { name: "sync-demo-tag" })
+          || await upsertOne("tags", { name: "sync-demo-tag" }, { name: "sync-demo-tag" });
+
+      // Fill placeholders
+      const fields = ["updateOpsInput"];
+      for (const id of fields) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.value = el.value
+          .replace(/<todoId>/g, todoId)
+          .replace(/<tagId>/g, tag.id);
+      }
+    }
+
+    // Inspect each side
+    document.getElementById("getLocal").addEventListener("click", async () => {
+      const doc = await localAdapter.load();
+      getLocalSink.log(pretty(doc));
+    });
+    document.getElementById("getCloud").addEventListener("click", async () => {
+      if (!cloudAdapter) return getCloudSink.log("Boot Cloud first.");
+      const doc = await cloudAdapter.load();
+      getCloudSink.log(pretty(doc));
+    });
+
+    // Sync Up / Down
+    document.getElementById("syncUp").addEventListener("click", async () => {
+      if (!cloudAdapter || !localAdapter) return syncSink.log("Boot both Local and Cloud first.");
+      await syncUp(localAdapter, cloudAdapter);
+      syncSink.log("Sync Up complete (Local → Cloud).");
+    });
+    document.getElementById("syncDown").addEventListener("click", async () => {
+      if (!cloudAdapter || !localAdapter) return syncSink.log("Boot both Local and Cloud first.");
+      await syncDown(cloudAdapter, localAdapter);
+      syncSink.log("Sync Down complete (Cloud → Local).");
+    });
+
+    // Active Adapter toggle
+    document.getElementById("useLocal").addEventListener("click", async () => {
+      if (!localAdapter) return localSink.log("Boot Local first.");
+      setActive("local"); await api.boot();
+    });
+    document.getElementById("useCloud").addEventListener("click", async () => {
+      if (!cloudAdapter) return cloudSink.log("Boot Cloud first.");
+      setActive("cloud"); await api.boot();
+    });
+
+    // Quick CRUD on active adapter
+    document.getElementById("insertBtn").addEventListener("click", async () => {
+      const { col, data } = gentleParse(document.getElementById("insertInput").value);
+      const rec = await api.insertOne(col, data);
+      insertSink.log(pretty(rec));
+    });
+
+    document.getElementById("updateOpsBtn").addEventListener("click", async () => {
+      const { col, id, ops } = gentleParse(document.getElementById("updateOpsInput").value);
+      const n = await updateOneOps(col, id, ops || {});
+      const row = api.findOne(col, r => r.id === id);
+      updateOpsSink.log(pretty({ updated: n, row }));
+    });
+  </script>
+  -->
+  <script type="module">
+    import { createConsoleSink, gentleParse, pretty } from "./demo-runner.js";
+    import * as api from "../tests/db-tracer.js";
+    import { LocalStorageAdapter } from "../scripts/adapters/localStorageAdapter.js";
+    import { jsonBinAdapter }     from "../scripts/adapters/jsonBinAdapter.js";
+    import { syncUp, syncDown }   from "../scripts/sync.js";
+    import { findOneBy, updateOneOps, upsertOne } from "../scripts/db.js";
+
+    // --- Sinks for each console on the page ---
+    const localSink     = createConsoleSink(document.getElementById("localConsole"));
+    const cloudSink     = createConsoleSink(document.getElementById("cloudConsole"));
+    const getLocalSink  = createConsoleSink(document.getElementById("getLocalConsole"));
+    const getCloudSink  = createConsoleSink(document.getElementById("getCloudConsole"));
+    const syncSink      = createConsoleSink(document.getElementById("syncConsole"));
+    const insertSink    = createConsoleSink(document.getElementById("insertConsole"));
+    const updateOpsSink = createConsoleSink(document.getElementById("updateOpsConsole"));
+
+    // --- Adapter management ---
+    let localAdapter = null;
+    let cloudAdapter = null;
+    const activeLabel = document.getElementById("activeLabel");
+    function setActive(which) {
+      if (which === "local" && localAdapter) {
+        api.useAdapter(localAdapter); activeLabel.textContent = "Active: Local";
+      } else if (which === "cloud" && cloudAdapter) {
+        api.useAdapter(cloudAdapter); activeLabel.textContent = "Active: Cloud";
+      }
+    }
+
+    // --- Event Listeners with Error Handling ---
+
+    // Boot Local
+    document.getElementById("bootLocal").addEventListener("click", async () => {
+      try {
+        localAdapter = new LocalStorageAdapter({ key: "mockdb:doc" });
+        api.useAdapter(localAdapter);
+        const doc = await api.boot();
+        document.getElementById("localStamp").textContent =
+          `Local rev=${doc.rev} • updated ${new Date(doc.updatedAt).toLocaleString()}`;
+        localSink.log("✅ Booted LocalStorage.");
+        setActive("local");
+      } catch (e) {
+        localSink.log(`❌ ERROR: ${e.message}`);
+      }
+    });
+
+    // Boot Cloud
+    document.getElementById("bootCloud").addEventListener("click", async () => {
+      const id = document.getElementById("binId").value.trim();
+      if (!id) { return cloudSink.log("Enter BIN_ID first."); }
+      try {
+        cloudAdapter = jsonBinAdapter(id);
+        api.useAdapter(cloudAdapter);
+        const doc = await api.boot();
+        document.getElementById("cloudStamp").textContent =
+          `Cloud rev=${doc.rev} • updated ${new Date(doc.updatedAt).toLocaleString()}`;
+        cloudSink.log("✅ Booted JSONBin.");
+        await ensureDemoEntities();
+        if (localAdapter) { setActive("local"); await api.boot(); } // Switch back to local if it exists
+      } catch (e) {
+        cloudSink.log(`❌ ERROR: ${e.message}`);
+      }
+    });
+
+    // Inspect Local
+    document.getElementById("getLocal").addEventListener("click", async () => {
+      if (!localAdapter) return getLocalSink.log("Boot Local first.");
+      try {
+        const doc = await localAdapter.load();
+        getLocalSink.log(pretty(doc));
+      } catch (e) {
+        getLocalSink.log(`❌ ERROR: ${e.message}`);
+      }
+    });
+
+    // Inspect Cloud
+    document.getElementById("getCloud").addEventListener("click", async () => {
+      if (!cloudAdapter) return getCloudSink.log("Boot Cloud first.");
+      try {
+        const doc = await cloudAdapter.load();
+        getCloudSink.log(pretty(doc));
+      } catch (e) {
+        getCloudSink.log(`❌ ERROR: ${e.message}`);
+      }
+    });
+
+    // Sync Up
+    document.getElementById("syncUp").addEventListener("click", async () => {
+      if (!cloudAdapter || !localAdapter) return syncSink.log("Boot both Local and Cloud first.");
+      try {
+        await syncUp(localAdapter, cloudAdapter);
+        syncSink.log("✅ Sync Up complete (Local → Cloud).");
+      } catch (e) {
+        syncSink.log(`❌ ERROR: ${e.message}`);
+        syncSink.log("Hint: Remote data is newer. Click 'Boot Cloud' to get the latest, then retry the sync.");
+      }
+    });
+
+    // Sync Down
+    document.getElementById("syncDown").addEventListener("click", async () => {
+      if (!cloudAdapter || !localAdapter) return syncSink.log("Boot both Local and Cloud first.");
+      try {
+        await syncDown(cloudAdapter, localAdapter);
+        syncSink.log("✅ Sync Down complete (Cloud → Local).");
+      } catch (e) {
+        syncSink.log(`❌ ERROR: ${e.message}`);
+      }
+    });
+    
+    // Active Adapter Toggles
+    document.getElementById("useLocal").addEventListener("click", async () => {
+      if (!localAdapter) return localSink.log("Boot Local first.");
+      setActive("local"); await api.boot();
+    });
+    document.getElementById("useCloud").addEventListener("click", async () => {
+      if (!cloudAdapter) return cloudSink.log("Boot Cloud first.");
+      setActive("cloud"); await api.boot();
+    });
+
+    // Quick CRUD
+    document.getElementById("insertBtn").addEventListener("click", async () => {
+      try {
+        const { col, data } = gentleParse(document.getElementById("insertInput").value);
+        const rec = await api.insertOne(col, data);
+        insertSink.log(pretty(rec));
+      } catch (e) {
+        insertSink.log(`❌ ERROR: ${e.message}`);
+      }
+    });
+
+    document.getElementById("updateOpsBtn").addEventListener("click", async () => {
+      try {
+        const { col, id, ops } = gentleParse(document.getElementById("updateOpsInput").value);
+        const n = await updateOneOps(col, id, ops || {});
+        const row = api.findOne(col, r => r.id === id);
+        updateOpsSink.log(pretty({ updated: n, row }));
+      } catch (e) {
+        updateOpsSink.log(`❌ ERROR: ${e.message}`);
+      }
+    });
+    
+    // Helper to auto-fill demo data
+    async function ensureDemoEntities() {
+      // ... (this function is already correct and can stay as is)
+      const first = api.findMany("todos")[0];
+      let todoId = first?.id;
+      if (!todoId) {
+        const t = await api.insertOne("todos", {
+          title:"Sync demo todo", done:false, assignedTo:"u-alice",
+          projectId:"p-1", tagIds:[], subtasks:[], commentIds:[]
+        });
+        todoId = t.id;
+      }
+      const tag = findOneBy("tags", { name: "sync-demo-tag" })
+          || await upsertOne("tags", { name: "sync-demo-tag" }, { name: "sync-demo-tag" });
+
+      const fields = ["updateOpsInput"];
+      for (const id of fields) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.value = el.value
+          .replace(/<todoId>/g, todoId)
+          .replace(/<tagId>/g, tag.id);
+      }
+    }
+  </script>
+</body>
+</html>

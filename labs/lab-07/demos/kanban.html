@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Mock DB — Kanban Board Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../styles/mvp.css" />
+  <style>
+    body { max-width: 95%; margin: 1rem auto; }
+    header { text-align: center; }
+    .config-card, .app-card { border: 1px solid #ddd; padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; }
+    .grid-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    #addTaskForm fieldset { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; align-items: flex-end; }
+    .filters { display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-end; border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem; }
+    #kanbanBoard { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; align-items: start; }
+    .kanban-column { background: #f4f4f4; border-radius: 8px; padding: 1rem; }
+    .kanban-column h4 { margin-top: 0; }
+    .kanban-column.drag-over { background: #d4edda; }
+    .task-cards { min-height: 100px; }
+    .task-card { background: #fff; border-radius: 4px; padding: 1rem; margin-bottom: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .task-card .card-header { display: flex; justify-content: space-between; align-items: start; gap: 0.5rem; }
+    .task-card h5 { margin: 0; flex-grow: 1; cursor: pointer; }
+    .task-card h5:hover { background: #f0f0f0; }
+    .task-card .meta { font-size: 0.8rem; color: #555; margin-bottom: 0.5rem; }
+    .task-card .meta span { cursor: pointer; }
+    .task-card .meta span:hover { text-decoration: underline; }
+    .task-card .subtasks { list-style: none; padding: 0; font-size: 0.9rem; }
+    .task-card .subtasks li.completed { text-decoration: line-through; color: #888; }
+    .delete-btn { background-color: transparent; color: #aaa; border: none; cursor: pointer; font-weight: bold; }
+    .delete-btn:hover { color: #c00; }
+  </style>
+</head>
+<body>
+  <header><h1>Kanban Board Demo</h1></header>
+
+  <section class="config-card">
+    <h3>Step 1: Choose Adapter & Boot</h3>
+    <fieldset>
+      <label><input type="radio" name="adapter" value="local" checked> LocalStorage</label>
+      <label><input type="radio" name="adapter" value="jsonbin"> JSONBin</label>
+    </fieldset>
+    <input type="text" id="binIdInput" placeholder="Enter your PUBLIC JSONBin ID..." style="display: none; margin-top: 0.5rem; width: 100%;">
+    <br>
+    <button id="bootButton">Boot Database</button>
+    <p id="bootStatus" class="hint"></p>
+  </section>
+
+  <section class="app-card" id="app" style="display: none;">
+    
+    <div class="grid-forms">
+      <form id="addProjectForm">
+        <h4>Add a New Project</h4>
+        <input type="text" id="newProjectName" placeholder="Project Name" required>
+        <button type="submit">Create Project</button>
+      </form>
+      <form id="addUserForm">
+        <h4>Add a New User</h4>
+        <input type="text" id="newUserName" placeholder="User Name" required>
+        <button type="submit">Create User</button>
+      </form>
+    </div>
+    
+    <hr>
+
+    <form id="addTaskForm">
+      <h4>Create New Task</h4>
+      <fieldset>
+        <div><label for="taskTitle">Task Title</label><input type="text" id="taskTitle" required></div>
+        <div><label for="taskProject">Project</label><select id="taskProject"></select></div>
+        <div><label for="taskUser">Assign To</label><select id="taskUser"></select></div>
+      </fieldset>
+      <button type="submit">Add to "To Do"</button>
+    </form>
+    
+    <div class="filters">
+      <div><label for="filterProject">Filter by Project</label><select id="filterProject"></select></div>
+      <div><label for="filterUser">Filter by User</label><select id="filterUser"></select></div>
+    </div>
+
+    <div id="kanbanBoard"></div>
+  </section>
+
+  <!-- Scripts -->
+  <script src="../scripts/model.js" type="module"></script>
+  <script src="../scripts/db.js" type="module"></script>
+  <script src="../scripts/adapters/localStorageAdapter.js" type="module"></script>
+  <script src="../scripts/adapters/jsonBinAdapter.js" type="module"></script>
+  <script src="./kanban.js" type="module"></script>
+</body>
+</html>

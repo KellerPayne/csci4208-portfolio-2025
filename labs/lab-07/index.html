@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mock DB Lab — Launcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./styles/mvp.css" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:980px;margin:2rem auto}
+    header h1{margin-bottom:.25rem}
+    header p{opacity:.8;margin-top:0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1rem}
+    .card{border:1px solid #e6e6e6;border-radius:10px;padding:1rem}
+    .card h3{margin-top:0}
+    .muted{opacity:.8}
+    footer{margin-top:2rem;opacity:.7}
+    code{white-space:nowrap}
+    .pill{font-size:.8rem;padding:.1rem .4rem;border:1px solid #dcdcdc;border-radius:999px;margin-left:.4rem}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mock Database (Client-Only)</h1>
+    <p class="muted">Start here. Run tests first, then explore with the demo consoles.</p>
+  </header>
+
+  <section class="card">
+    <h3>Serve this folder</h3>
+    <p>From the project root, run <code>npx http-server</code> (or use your static server). Then click the links below.</p>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h3>✅ Testers (Approval Pages)</h3>
+      <ul>
+        <li>
+          <a href="./tests/test-memory.html">Test — In-Memory (Part 1)</a>
+          <span class="muted">&ensp;&thinsp;( no persistence )</span>
+        </li>
+        <li>
+          <a href="./tests/test-adv-memory.html">Test — In-Memory (Part 2)</a>
+          <span class="muted">&ensp;&thinsp;( no persistence )</span>
+        </li>
+        <li>
+          <a href="./tests/test-local.html">Test — LocalStorage </a>
+          <span class="muted">&emsp;&emsp;&emsp;&thinsp; ( persists in browser )</span>
+        </li>
+        <li>
+          <a href="./tests/test-jsonbin.html">Test — JSONBin  </a>
+          <span class="muted">&emsp;&emsp;&emsp;&emsp;&emsp; ( persists in cloud )</span>
+        </li>
+        <li>
+          <a href="./tests/test-sync.html">Test — Sync (Local ⇄ Cloud)</a>
+          <span class="muted">&thinsp;( multi-adapter )</span>
+        </li>
+      </ul>
+      <p class="muted">These run the same DB contract and show a live trace of each call.</p>
+    </div>
+
+    <div class="card">
+      <h3>🧪 Demo Consoles (Interactive)</h3>
+      <ul>
+        <li><a href="./demos/memory.html">Demo — In-Memory (Part 1)</a> <span class="muted">&ensp;&thinsp;( no persistence )</span></li>
+        <li><a href="./demos/memory-adv.html">Demo — In-Memory (Part 2)</a> <span class="muted">&ensp;&thinsp;( no persistence )</span></li>
+        <li><a href="./demos/local.html">Demo — LocalStorage</a> <span class="muted">&emsp;&emsp;&emsp;&thinsp; ( persists in browser )</span></li>
+        <li><a href="./demos/jsonbin.html">Demo — JSONBin</a> <span class="muted">&emsp;&emsp;&emsp;&emsp;&emsp; ( persists in cloud )</span></li>
+        <li><a href="./demos/sync.html">Demo — Sync (Local ⇄ Cloud)</a> <span class="muted">&thinsp; ( multi-adapter )</span></li>
+      </ul>
+      <p class="muted">Each page provides runnable examples with editable inputs and a live console.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>🗓️ Kanban Board - Final Demo App</h3>
+    <p>
+      This fully-functional Kanban board demonstrates the complete power of the database you built. It uses your API for creating, reading, updating (via drag & drop), and filtering tasks, projects, and users.
+    </p>
+    <p>
+      <a href="./demos/kanban.html"><strong>Launch the Kanban App &raquo;</strong></a>
+    </p>
+    <ul>
+      <li>This is the final deliverable and showcases all lab concepts working together.</li>
+      <li>Ensure you have completed all previous Dev Cycles before running.</li>
+    </ul>
+  </section>
+
+
+  <section class="grid">
+    <div class="card">
+      <h3>ℹ️ Tips</h3>
+      <ul>
+        <li>Always <strong>boot</strong> first; demos include a <em>Boot/Reload</em> button.</li>
+        <li>For JSONBin, the bin must be <strong>PUBLIC</strong>. Paste your <code>BIN_ID</code> on the page.</li>
+        <li>If you see “Remote is newer”, click Boot/Reload to refresh, then retry the write.</li>
+      </ul>
+    </div>
+  </section>
+
+
+  <footer>
+    <p class="muted">Feel free to use this mock database in your project for client-only persistence. 👍</p>
+  </footer>
+</body>
+</html>

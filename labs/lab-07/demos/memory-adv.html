@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mock DB API Console — Advanced (In-Memory)</title>
+  <link rel="stylesheet" href="./demo.css" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:1000px;margin:2rem auto}
+  </style>
+</head>
+<body>
+  <h1>API Console — Advanced (In-Memory Adapter)</h1>
+  <p>Experiment with <strong>filter objects</strong>, <strong>projection/sort/paging</strong>, <strong>update operators</strong>, <strong>upsert</strong>, and <strong>batch</strong>—on top of the basic CRUD.</p>
+
+  <div class="grid">
+    <!-- Boot -->
+    <div class="card" id="bootCard">
+      <div class="controls">
+        <button id="bootBtn" class="run-btn">Boot / Reload</button>
+        <span id="stamp"></span>
+      </div>
+      <div id="bootConsole"></div>
+    </div>
+
+    <!-- getDoc -->
+    <div class="card">
+      <label><strong>getDoc</strong> <small>(no input)</small></label>
+      <div class="controls"><button id="getDocBtn" class="run-btn">Run</button></div>
+      <div id="getDocConsole"></div>
+    </div>
+
+    <!-- findManyBy (filter object) -->
+    <div class="card">
+      <label><strong>findManyBy</strong>
+        <small>{ "col": "todos", "filter": { "assignedTo": "u-alice", "done": false } }</small>
+      </label>
+      <textarea id="findManyByInput">{ "col": "todos", "filter": { "assignedTo": "u-alice", "done": false } }</textarea>
+      <div class="controls"><button id="findManyByBtn" class="run-btn">Run</button></div>
+      <div id="findManyByConsole"></div>
+    </div>
+
+    <!-- findOneBy (filter object) -->
+    <div class="card">
+      <label><strong>findOneBy</strong>
+        <small>{ "col": "tags", "filter": { "name": "setup" } }</small>
+      </label>
+      <textarea id="findOneByInput">{ "col": "tags", "filter": { "name": "setup" } }</textarea>
+      <div class="controls"><button id="findOneByBtn" class="run-btn">Run</button></div>
+      <div id="findOneByConsole"></div>
+    </div>
+
+    <!-- find (projection/sort/limit/skip) -->
+    <div class="card">
+      <label><strong>find</strong>
+        <small>{
+          "col":"todos",
+          "args":{
+            "filter":{"done":false},
+            "sort":{"title":1},
+            "limit":3,
+            "fields":{"id":1,"title":1}
+          }
+        }</small>
+      </label>
+      <textarea id="findInput">{
+  "col": "todos",
+  "args": {
+    "filter": { "done": false },
+    "sort": { "title": 1 },
+    "limit": 3,
+    "fields": { "id": 1, "title": 1 }
+  }
+}</textarea>
+      <div class="controls"><button id="findBtn" class="run-btn">Run</button></div>
+      <div id="findConsole"></div>
+    </div>
+
+    <!-- updateOneOps ($set / $addToSet / $pull) -->
+    <div class="card">
+      <label><strong>updateOneOps</strong>
+        <small>{
+          "col":"todos","id":"t-1",
+          "ops":{"$addToSet":{"tagIds":"t-web"},"$set":{"done":true}}
+        }</small>
+      </label>
+      <textarea id="updateOpsInput">{
+  "col": "todos",
+  "id": "t-1",
+  "ops": { "$addToSet": { "tagIds": "t-web" }, "$set": { "done": true } }
+}</textarea>
+      <div class="controls"><button id="updateOpsBtn" class="run-btn">Run</button></div>
+      <div id="updateOpsConsole"></div>
+    </div>
+
+    <!-- upsertOne -->
+    <div class="card">
+      <label><strong>upsertOne</strong>
+        <small>{
+          "col":"tags",
+          "filter":{"name":"priority"},
+          "data":{"name":"priority"}
+        }</small>
+      </label>
+      <textarea id="upsertInput">{
+  "col": "tags",
+  "filter": { "name": "priority" },
+  "data": { "name": "priority" }
+}</textarea>
+      <div class="controls"><button id="upsertBtn" class="run-btn">Run</button></div>
+      <div id="upsertConsole"></div>
+    </div>
+
+    <!-- transact (batch) -->
+    <div class="card">
+      <label><strong>transact</strong>
+        <small>// JS body string — will run inside transact(doc => { ... })</small>
+      </label>
+      <textarea id="transactInput">
+// Adds tag t-batch if missing and attaches it to first todo
+const t = doc.tags.find(x => x.id === "t-batch");
+if (!t) doc.tags.push({ id: "t-batch", name: "batch" });
+if (doc.todos[0]) {
+  const set = new Set([...(doc.todos[0].tagIds || []), "t-batch"]);
+  doc.todos[0].tagIds = Array.from(set);
+}
+      </textarea>
+      <div class="controls"><button id="transactBtn" class="run-btn">Run</button></div>
+      <div id="transactConsole"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createConsoleSink, gentleParse, pretty } from "./demo-runner.js";
+    import * as api from "../tests/db-tracer.js";
+    import { memoryAdapter } from "../scripts/adapters/memoryAdapter.js";
+
+    // Advanced helpers from your revised db.js
+    import {
+      findManyBy, findOneBy, find,
+      updateOneOps, upsertOne
+    } from "../scripts/db.js";
+
+    // Wire adapter + boot
+    api.useAdapter(memoryAdapter);
+    const bootSink = createConsoleSink(document.getElementById("bootConsole"));
+    const stamp = document.getElementById("stamp");
+
+    async function bootNow(){
+      const doc = await api.boot();
+      stamp.textContent = "rev=" + doc.rev + " • updated " + new Date(doc.updatedAt).toLocaleString();
+      bootSink.log("Booted memory doc with " + (doc.users?.length ?? 0) + " users, " + (doc.todos?.length ?? 0) + " todos");
+    }
+    document.getElementById("bootBtn").addEventListener("click", bootNow);
+    await bootNow();
+
+    function hook(btnId, sinkId, fn){
+      const sink = createConsoleSink(document.getElementById(sinkId));
+      document.getElementById(btnId).addEventListener("click", async () => {
+        try { const out = await fn(); if (out !== undefined) sink.log(pretty(out)); }
+        catch (e) { sink.log("ERROR: " + e.message); }
+      });
+    }
+
+    // getDoc
+    hook("getDocBtn", "getDocConsole", async () => api.getDoc());
+
+    // findManyBy
+    hook("findManyByBtn", "findManyByConsole", async () => {
+      const { col, filter } = gentleParse(document.getElementById("findManyByInput").value);
+      return findManyBy(col, filter);
+    });
+
+    // findOneBy
+    hook("findOneByBtn", "findOneByConsole", async () => {
+      const { col, filter } = gentleParse(document.getElementById("findOneByInput").value);
+      return findOneBy(col, filter);
+    });
+
+    // find (projection/sort/paging)
+    hook("findBtn", "findConsole", async () => {
+      const { col, args } = gentleParse(document.getElementById("findInput").value);
+      return find(col, args || {});
+    });
+
+    // updateOneOps
+    hook("updateOpsBtn", "updateOpsConsole", async () => {
+      const { col, id, ops } = gentleParse(document.getElementById("updateOpsInput").value);
+      const n = await updateOneOps(col, id, ops || {});
+      return { updated: n, row: api.findOne(col, r => r.id === id) };
+    });
+
+    // upsertOne
+    hook("upsertBtn", "upsertConsole", async () => {
+      const { col, filter, data } = gentleParse(document.getElementById("upsertInput").value);
+      return await upsertOne(col, filter || {}, data || {});
+    });
+
+    // transact
+    hook("transactBtn", "transactConsole", async () => {
+      const body = document.getElementById("transactInput").value;
+      await api.transact(new Function("doc", body));  // runs user's code safely within the closure
+      return api.getDoc();
+    });
+  </script>
+</body>
+</html>

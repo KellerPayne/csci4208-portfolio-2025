@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MockDB Tests — JSONBin (Basic + Advanced)</title>
+  <link rel="stylesheet" href="./console.css" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:900px;margin:2rem auto}
+    .toolbar{display:flex;gap:.5rem;align-items:center;margin:.75rem 0;}
+    .hint{opacity:.8}
+    button[disabled]{opacity:.5;cursor:not-allowed}
+  </style>
+</head>
+<body>
+  <h1>MockDB Tests — JSONBin</h1>
+  <p class="hint"><strong>Note:</strong> Use a <em>per-student</em> <strong>PUBLIC</strong> bin seeded with your <code>seedDoc()</code>. This page issues GET/PUT only (no keys).</p>
+
+  <div class="toolbar">
+    <input id="binId" type="text" placeholder="BIN_ID (PUBLIC)" style="min-width:380px" />
+    <button id="bootBtn">Boot</button>
+    <span id="stamp" class="hint"></span>
+  </div>
+  <div class="toolbar">
+    <button id="runBtn" disabled>Run All Tests (Basic + Advanced)</button>
+    <button id="clearBtn">Clear Output</button>
+  </div>
+
+  <ol id="out"></ol>
+
+  <script type="module">
+    import { runTests } from "./test-runner.js";
+    // tracer-wrapped core API: useAdapter, boot, getDoc, findMany, findOne, insertOne, updateOne, deleteOne, transact
+    import * as api from "./db-tracer.js";
+    import { jsonBinAdapter } from "../scripts/adapters/jsonBinAdapter.js";
+
+    // Advanced helpers exported from ../scripts/db.js
+    import {
+      findManyBy, findOneBy, find,
+      updateOneOps, upsertOne
+    } from "../scripts/db.js";
+
+    const out = document.getElementById("out");
+    const bootBtn = document.getElementById("bootBtn");
+    const runBtn  = document.getElementById("runBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const binInput = document.getElementById("binId");
+    const stamp = document.getElementById("stamp");
+
+    let booted = false;
+
+    function clearOutput(){ out.innerHTML = ""; }
+
+    async function doBoot(){
+      const id = binInput.value.trim();
+      if (!id) { alert("Enter a PUBLIC BIN_ID first."); return; }
+      api.useAdapter(jsonBinAdapter(id));
+      const doc = await api.boot();
+      booted = true;
+      stamp.textContent = `rev=${doc.rev} • updated ${new Date(doc.updatedAt).toLocaleString()}`;
+      runBtn.disabled = false;
+    }
+
+    bootBtn.addEventListener("click", async () => {
+      try {
+        await doBoot();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+
+    clearBtn.addEventListener("click", clearOutput);
+
+    runBtn.addEventListener("click", async () => {
+      if (!booted) { alert("Boot first with a PUBLIC BIN_ID."); return; }
+      runBtn.disabled = true;
+      try {
+        await runAllTests();
+      } catch (e) {
+        // let runner sections log their own errors; fallback alert is ok
+        console.error(e);
+      } finally {
+        runBtn.disabled = false;
+      }
+    });
+
+    async function runAllTests(){
+      // -------- BASIC CRUD --------
+      await runTests("Step 1: Boot & Seed (JSONBin)", async ({assert, console}) => {
+        const doc = await api.boot(); // re-GET latest
+        console("Loaded remote rev=" + doc.rev);
+        assert(Array.isArray(doc.users), "remote users array exists");
+        assert(Array.isArray(doc.todos), "remote todos array exists");
+        assert(Array.isArray(doc.tags),  "remote tags array exists");
+      });
+
+      await runTests("Step 2: CREATE (cloud)", async ({assert, console}) => {
+        const before = (api.getDoc().users || []).length;
+        const rec = await api.insertOne("users", { name: "Carol" });
+        const after = api.getDoc().users.length;
+        console("Inserted user:\n" + JSON.stringify(rec, null, 2));
+        assert(!!rec.id, "insert returns record with id");
+        assert(after === before + 1, "user count increased");
+      });
+
+      await runTests("Step 3: READ (cloud)", async ({assert, console}) => {
+        const users = api.findMany("users");
+        const carol = api.findOne("users", u => u.name === "Carol");
+        console("Users:\n" + JSON.stringify(users, null, 2));
+        assert(Array.isArray(users), "findMany returns array");
+        assert(!!carol, "findOne locates Carol");
+      });
+
+      await runTests("Step 4: UPDATE (cloud)", async ({assert, console}) => {
+        const t = await api.insertOne("todos", {
+          title:"Cloud Draft", done:false, assignedTo:"u-bob",
+          projectId:"p-1", tagIds:[], subtasks:[], commentIds:[]
+        });
+        const n = await api.updateOne("todos", t.id, { done:true });
+        const updated = api.findOne("todos", x => x.id === t.id);
+        console("Updated todo:\n" + JSON.stringify(updated, null, 2));
+        assert(n === 1, "updateOne returns 1");
+        assert(updated.done === true, "todo marked done");
+      });
+
+      await runTests("Step 5: DELETE (cloud)", async ({assert, console}) => {
+        const tag = await api.insertOne("tags", { name: "temp-tag" });
+        const d = await api.deleteOne("tags", tag.id);
+        const still = api.findOne("tags", x => x.id === tag.id);
+        console("Deleted tag id: " + tag.id);
+        assert(d === 1, "deleteOne returns 1");
+        assert(!still, "record removed");
+      });
+
+      await runTests("Cloud Consistency: Reboot after basic ops", async ({assert, console}) => {
+        const before = api.getDoc().rev ?? 0;
+        const re = await api.boot(); // GET latest again
+        console("Rebooted remote rev=" + re.rev);
+        assert((re.rev ?? 0) >= before, "re-boot returns same or newer rev");
+      });
+
+      // -------- ADVANCED CRUD --------
+      await runTests("Advanced — Filter Objects (findManyBy / findOneBy)", async ({assert, console}) => {
+        const r1 = findManyBy("todos", { assignedTo:"u-alice", done:false });
+        console("findManyBy todos (u-alice & open): " + r1.length);
+        assert(Array.isArray(r1), "findManyBy returns array");
+
+        const tagSetup = findOneBy("tags", { name:"setup" });
+        console("findOneBy tags (name=setup): " + JSON.stringify(tagSetup));
+        assert(tagSetup ? tagSetup.name === "setup" : true, "findOneBy runs even if tag was removed");
+      });
+
+      await runTests("Advanced — Projection / Sort / Paging (find)", async ({assert, console}) => {
+        const rows = find("todos", {
+          filter: { done:false },
+          sort: { title:1 },
+          limit: 3,
+          fields: { id:1, title:1 }
+        });
+        console("find() projected rows:\n" + JSON.stringify(rows, null, 2));
+        assert(Array.isArray(rows), "find returns array");
+        assert(rows.length <= 3, "limit applied");
+        if (rows[0]) {
+          assert("id" in rows[0] && "title" in rows[0], "projection includes id/title");
+          assert(!("assignedTo" in rows[0]), "projection excludes unspecified fields");
+        }
+      });
+
+      await runTests("Advanced — updateOneOps ($set / $addToSet / $pull)", async ({assert, console}) => {
+        const t = await api.insertOne("todos", {
+          title:"Cloud AdvOps", done:false, assignedTo:"u-bob",
+          projectId:"p-1", tagIds:[], subtasks:[], commentIds:[]
+        });
+
+        const n1 = await updateOneOps("todos", t.id, {
+          $addToSet: { tagIds:"t-web" }, $set: { done:true }
+        });
+        const after1 = api.findOne("todos", x => x.id === t.id);
+        console("After $addToSet/$set:\n" + JSON.stringify(after1, null, 2));
+        assert(n1 === 1, "updateOneOps returns 1 for addToSet/set");
+        assert(after1.done === true, "done updated");
+        assert((after1.tagIds || []).includes("t-web"), "tagIds contains t-web");
+
+        const n2 = await updateOneOps("todos", t.id, { $pull: { tagIds:"t-web" } });
+        const after2 = api.findOne("todos", x => x.id === t.id);
+        console("After $pull:\n" + JSON.stringify(after2, null, 2));
+        assert(n2 === 1, "updateOneOps returns 1 for pull");
+        assert(!(after2.tagIds || []).includes("t-web"), "tagIds no longer contains t-web");
+      });
+
+      await runTests("Advanced — upsertOne (create-or-update)", async ({assert, console}) => {
+        const pre = find("tags", { filter: { name:"priority" } });
+        console("Existing priority tags (before): " + pre.length);
+
+        const a = await upsertOne("tags", { name:"priority" }, { name:"priority" });
+        const mid = find("tags", { filter: { name:"priority" } });
+        console("After first upsert count: " + mid.length);
+        assert(mid.length >= 1, "upsert created or updated tag 'priority'");
+
+        const b = await upsertOne("tags", { name:"priority" }, { name:"priority" });
+        const post = find("tags", { filter: { name:"priority" } });
+        console("After second upsert count: " + post.length);
+        assert(post.length === 1, "upsert did not create a duplicate");
+      });
+
+      await runTests("Advanced — transact (batch save)", async ({assert, console}) => {
+        await api.transact(doc => {
+          if (!doc.tags.find(t => t.id === "t-batch-cloud"))
+            doc.tags.push({ id:"t-batch-cloud", name:"batch-cloud" });
+          const first = doc.todos[0];
+          if (first) {
+            const set = new Set([...(first.tagIds || []), "t-batch-cloud"]);
+            first.tagIds = Array.from(set);
+          }
+        });
+        const hasTag = !!findOneBy("tags", { name:"batch-cloud" });
+        const firstTodo = api.findMany("todos")[0];
+        const attached = (firstTodo?.tagIds || []).includes("t-batch-cloud");
+        console("Transact attached 't-batch-cloud' to first todo");
+        assert(hasTag, "batch created tag");
+        assert(attached, "batch attached tag to first todo");
+      });
+
+      await runTests("Cloud Consistency: Reboot after advanced ops", async ({assert, console}) => {
+        const snapBefore = api.getDoc();
+        const revBefore = snapBefore.rev ?? 0;
+        const again = await api.boot(); // GET latest again
+        console("Rebooted remote rev=" + again.rev);
+        assert((again.rev ?? 0) >= revBefore, "rev is same or newer after reboot");
+        const stillHas = !!findOneBy("tags", { name:"batch-cloud" });
+        assert(stillHas, "JSONBin persisted batch changes across boot()");
+      });
+    }
+  </script>
+</body>
+</html>

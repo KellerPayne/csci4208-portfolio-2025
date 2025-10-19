@@ -1,0 +1,185 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MockDB Tests — Sync (LocalStorage ⇄ JSONBin)</title>
+  <link rel="stylesheet" href="./console.css" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:940px;margin:2rem auto}
+    .toolbar{display:flex;gap:.5rem;align-items:center;margin:.75rem 0;}
+    .hint{opacity:.8}
+    button[disabled]{opacity:.5;cursor:not-allowed}
+  </style>
+</head>
+<body>
+  <h1>MockDB Tests — Sync (LocalStorage ⇄ JSONBin)</h1>
+  <p class="hint">Paste a <strong>PUBLIC</strong> JSONBin <code>BIN_ID</code>, Boot local as primary, then run Sync tests.</p>
+
+  <div class="toolbar">
+    <input id="binId" type="text" placeholder="BIN_ID (PUBLIC)" style="min-width:360px" />
+    <button id="bootLocal">Boot Local</button>
+    <button id="bootCloud">Boot Cloud</button>
+    <span id="stamp" class="hint"></span>
+  </div>
+  <div class="toolbar">
+    <button id="runAll" disabled>Run Sync Tests</button>
+    <button id="clear">Clear Output</button>
+  </div>
+
+  <ol id="out"></ol>
+
+  <script type="module">
+    import { runTests } from "./test-runner.js";
+    // tracer-wrapped DB API (for active adapter): useAdapter, boot, getDoc, insertOne, findOne
+    import * as api from "./db-tracer.js";
+
+    import { LocalStorageAdapter } from "../scripts/adapters/localStorageAdapter.js";
+    import { JsonBinAdapter }     from "../scripts/adapters/jsonBinAdapter.js";
+    import { syncUp, syncDown }   from "../scripts/sync.js";
+
+    const out      = document.getElementById("out");
+    const runAll   = document.getElementById("runAll");
+    const clearBtn = document.getElementById("clear");
+    const bootLocalBtn = document.getElementById("bootLocal");
+    const bootCloudBtn = document.getElementById("bootCloud");
+    const binInput = document.getElementById("binId");
+    const stamp    = document.getElementById("stamp");
+
+    let local, cloud, bootedLocal = false, bootedCloud = false;
+
+    function deepClone(x){
+      return (typeof structuredClone === "function") ? structuredClone(x) : JSON.parse(JSON.stringify(x));
+    }
+    function clearOutput(){ out.innerHTML = ""; }
+
+    async function bootLocal(){
+      local = new LocalStorageAdapter({ key: "mockdb:doc" });
+      api.useAdapter(local);
+      const doc = await api.boot();
+      bootedLocal = true;
+      stamp.textContent = `Local rev=${doc.rev} • updated ${new Date(doc.updatedAt).toLocaleString()}`;
+      runAll.disabled = !bootedLocal || !bootedCloud;
+    }
+    async function bootCloud(){
+      const id = binInput.value.trim();
+      if(!id) { alert("Enter a PUBLIC BIN_ID first."); return; }
+      cloud = new JsonBinAdapter({ binId: id });
+      // for booting cloud in-place, we temporarily switch, boot, and switch back (local primary)
+      api.useAdapter(cloud);
+      const doc = await api.boot();
+      bootedCloud = true;
+      stamp.textContent = `Cloud rev=${doc.rev} • updated ${new Date(doc.updatedAt).toLocaleString()}`;
+      // switch back to local as the active adapter for normal editing
+      if(local) {
+        api.useAdapter(local);
+        await api.boot();
+      }
+      runAll.disabled = !bootedLocal || !bootedCloud;
+    }
+
+    bootLocalBtn.addEventListener("click", () => bootLocal().catch(e => alert(e.message)));
+    bootCloudBtn.addEventListener("click", () => bootCloud().catch(e => alert(e.message)));
+    clearBtn.addEventListener("click", clearOutput);
+
+    runAll.addEventListener("click", async () => {
+      runAll.disabled = true;
+      try { await runSyncSuite(); }
+      catch (e) { console.error(e); }
+      finally { runAll.disabled = false; }
+    });
+
+    async function runSyncSuite(){
+
+      // ---------- Sync Up (Local → Cloud) ----------
+      await runTests("Sync Up: Local → Cloud", async ({ assert, console }) => {
+        // Work locally as primary
+        api.useAdapter(local);
+        await api.boot();
+
+        // 1) Insert locally
+        const tag = await api.insertOne("tags", { name: "sync-up-tag" });
+        console("Inserted locally: " + JSON.stringify(tag));
+
+        // 2) Sync Up (Local → Cloud)
+        await syncUp(local, cloud);
+        console("SyncUp completed.");
+
+        // 3) Verify in Cloud (read cloud doc directly)
+        const cloudDoc = await cloud.snapshot();
+        const found = (cloudDoc.tags || []).find(t => t.name === "sync-up-tag");
+        assert(!!found, "Cloud contains 'sync-up-tag' after Sync Up");
+      });
+
+      // ---------- Sync Down (Cloud → Local) ----------
+      await runTests("Sync Down: Cloud → Local", async ({ assert, console }) => {
+        // 1) Make a change in cloud directly
+        const cloudDoc = await cloud.load();
+        const doc2 = deepClone(cloudDoc);
+        // add a tag in cloud side
+        const exists = (doc2.tags || []).some(t => t.name === "sync-down-tag");
+        if (!exists) {
+          doc2.tags = Array.isArray(doc2.tags) ? doc2.tags : [];
+          doc2.tags.push({ id: "t-sync-down", name: "sync-down-tag" });
+          await cloud.save(doc2);
+          console("Cloud received 'sync-down-tag'.");
+        } else {
+          console("'sync-down-tag' already exists in cloud.");
+        }
+
+        // 2) Sync Down (Cloud → Local)
+        await syncDown(cloud, local);
+        console("SyncDown completed.");
+
+        // 3) Verify locally
+        api.useAdapter(local);
+        await api.boot();
+        const hasLocal = !!api.findOne("tags", t => t.name === "sync-down-tag");
+        assert(hasLocal, "Local contains 'sync-down-tag' after Sync Down");
+      });
+
+      // ---------- Conflict detection (JSONBin optimistic rev) ----------
+      await runTests("Conflict: Remote newer blocks stale save", async ({ assert, console }) => {
+        // 1) Load old snapshot from cloud
+        const old = await cloud.load();
+        const oldDoc = deepClone(old);
+
+        // 2) Create a newer remote version (simulate concurrent writer)
+        const latest = await cloud.load();
+        const newer  = deepClone(latest);
+        // mutate something trivially (bump a harmless 'tags' entry)
+        newer.tags = Array.isArray(newer.tags) ? newer.tags : [];
+        const tagName = "conflict-probe";
+        if (!newer.tags.some(t => t.name === tagName)) {
+          newer.tags.push({ id: "t-conflict", name: tagName });
+        } else {
+          // if it's already there, flip done on t-1 if exists to bump rev
+          const t1 = newer.todos?.find?.(x => x.id === "t-1");
+          if (t1) t1.done = !t1.done;
+        }
+        await cloud.save(newer);
+        console("Wrote newer remote to cloud (rev advanced).");
+
+        // 3) Attempt to save the old doc → expect conflict error
+        let threw = false;
+        try {
+          await cloud.save(oldDoc);
+        } catch (e) {
+          threw = /Remote is newer/.test(String(e));
+          console("Caught error: " + e.message);
+        }
+        assert(threw, "Saving stale doc throws 'Remote is newer; reload/merge before saving.'");
+
+        // 4) Resolve: Boot cloud (re-GET latest) then reapply a small change and save
+        api.useAdapter(cloud);
+        await api.boot();
+        const fix = await cloud.load();
+        fix.updatedAt = new Date().toISOString(); // harmless change—adapter will stamp anyway
+        await cloud.save(fix);
+        console("Conflict resolved by reload & retry (manual merge policy).");
+
+        assert(true, "Conflict path recoverable with Boot + retry");
+      });
+    }
+  </script>
+</body>
+</html>

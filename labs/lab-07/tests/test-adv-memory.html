@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MockDB Advanced Tests — Memory Adapter</title>
+  <link rel="stylesheet" href="./console.css" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:900px;margin:2rem auto}
+  </style>
+</head>
+<body>
+  <h1>MockDB Advanced Tests — Memory Adapter</h1>
+  <p>This page verifies the <strong>Advanced CRUD</strong> helpers on top of the Memory adapter. Run the basic tests first; then run these.</p>
+  <ol id="out"></ol>
+
+  <script type="module">
+    import { runTests } from "./test-runner.js";
+    // tracer wraps the core DB methods so you get the live call trace in the testers
+    import * as api from "./db-tracer.js";
+    import { memoryAdapter } from "../scripts/adapters/memoryAdapter.js";
+
+    // Advanced helpers are exported from your revised ../scripts/db.js
+    import {
+      findManyBy, findOneBy, find,
+      updateOneOps, upsertOne
+    } from "../scripts/db.js";
+
+    // --- Boot with MemoryAdapter ---
+    api.useAdapter(memoryAdapter);
+
+    await runTests("Boot (memory)", async ({ assert }) => {
+      const doc = await api.boot();
+      assert(!!doc.users?.length, "seed users exist");
+      assert(Array.isArray(doc.todos), "todos array present");
+      assert(Array.isArray(doc.tags),  "tags array present");
+    });
+
+    // --- Goal 6: Filter Objects (Mongo-ish find) ---
+    await runTests("Advanced Read — Filter Objects (findManyBy/findOneBy)", async ({ assert }) => {
+      // Using the seed: there's a todo assigned to u-alice and done:false
+      const openForAlice = findManyBy("todos", { assignedTo: "u-alice", done: false });
+      assert(Array.isArray(openForAlice), "findManyBy returns array");
+      assert(openForAlice.length >= 1, "filter found at least one matching todo");
+
+      // Using the seed: tags includes name:"setup"
+      const setupTag = findOneBy("tags", { name: "setup" });
+      assert(!!setupTag && setupTag.name === "setup", "findOneBy finds tag by name");
+    });
+
+    // --- Goal 7: Projection, Sort, Skip/Limit ---
+    await runTests("Advanced Read — Projection / Sort / Paging (find)", async ({ assert }) => {
+      const rows = find("todos", {
+        filter: {},               // no filter
+        sort: { title: 1 },       // ascending by title
+        limit: 1,                 // only one item
+        fields: { id: 1, title: 1 } // projection (id,title only)
+      });
+      assert(Array.isArray(rows) && rows.length === 1, "find() respects limit");
+      const row = rows[0];
+      assert("id" in row && "title" in row, "projection includes id & title");
+      assert(!("assignedTo" in row), "projection excluded unspecified fields");
+    });
+
+    // --- Goal 8: Update Operators (array sugar) ---
+    await runTests("Advanced Update — updateOneOps ($set / $addToSet / $pull)", async ({ assert }) => {
+      // Create a fresh todo for a clean test space
+      const t = await api.insertOne("todos", {
+        title: "AdvOps", done: false, assignedTo: "u-bob",
+        projectId: "p-1", tagIds: [], subtasks: [], commentIds: []
+      });
+
+      // $addToSet + $set
+      const n1 = await updateOneOps("todos", t.id, {
+        $addToSet: { tagIds: "t-web" },
+        $set: { done: true }
+      });
+      const updated1 = api.findOne("todos", x => x.id === t.id);
+      assert(n1 === 1, "$addToSet/$set applied (returns 1)");
+      assert(updated1.done === true, "done was set to true");
+      assert((updated1.tagIds || []).includes("t-web"), "tagIds includes 't-web' after $addToSet");
+
+      // $pull
+      const n2 = await updateOneOps("todos", t.id, { $pull: { tagIds: "t-web" } });
+      const updated2 = api.findOne("todos", x => x.id === t.id);
+      assert(n2 === 1, "$pull applied (returns 1)");
+      assert(!(updated2.tagIds || []).includes("t-web"), "tagIds no longer includes 't-web' after $pull");
+    });
+
+    // --- Goal 9: Upsert ---
+    await runTests("Advanced Write — upsertOne (create-or-update)", async ({ assert }) => {
+      // First upsert should insert
+      const a = await upsertOne("tags", { name: "priority" }, { name: "priority" });
+      const countAfterA = find("tags", { filter: { name: "priority" } }).length;
+      assert(countAfterA === 1, "upsert created tag 'priority'");
+
+      // Second upsert should update (not create a duplicate)
+      const b = await upsertOne("tags", { name: "priority" }, { name: "priority" });
+      const countAfterB = find("tags", { filter: { name: "priority" } }).length;
+      assert(countAfterB === 1, "upsert updated not duplicated");
+    });
+
+    // --- Batch: transact ---
+    await runTests("Batch — transact (multi-collection single save)", async ({ assert }) => {
+      // Add a tag and attach it to the first todo in one go
+      await api.transact(doc => {
+        if (!doc.tags.find(t => t.id === "t-batch")) {
+          doc.tags.push({ id: "t-batch", name: "batch" });
+        }
+        const first = doc.todos[0];
+        if (first) {
+          const set = new Set([...(first.tagIds || []), "t-batch"]);
+          first.tagIds = Array.from(set);
+        }
+      });
+
+      const hasBatchTag = !!findOneBy("tags", { name: "batch" });
+      const firstTodo = api.findMany("todos")[0];
+      const todoHasBatch = (firstTodo?.tagIds || []).includes("t-batch");
+
+      assert(hasBatchTag, "transact added 'batch' tag");
+      assert(todoHasBatch, "transact attached 't-batch' to first todo");
+    });
+  </script>
+</body>
+</html>

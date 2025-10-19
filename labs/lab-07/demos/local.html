@@ -1,0 +1,326 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mock DB API Console — Local Storage (Basic + Advanced)</title>
+  <link rel="stylesheet" href="./demo.css" />
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:1000px;margin:2rem auto}
+    .section-title{margin-top:2rem}
+    .hint{opacity:.75;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <h1>API Console — Local Storage Adapter</h1>
+  <p>Run mini-DB commands against your <strong>Local Storage</strong> document. The page will <em>auto-fill</em> IDs to avoid broken examples.</p>
+
+  <h2 class="section-title">Boot</h2>
+  <div class="grid">
+    <div class="card" id="bootCard">
+      <div class="controls">
+        <button id="bootBtn" class="run-btn">Boot / Reload</button>
+        <span id="stamp"></span>
+      </div>
+      <div class="hint">On boot, we ensure a demo todo and a demo tag exist and auto-fill the cards below.</div>
+      <div id="bootConsole"></div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Basic CRUD</h2>
+  <div class="grid">
+    <!-- getDoc -->
+    <div class="card">
+      <label><strong>getDoc</strong> <small>(no input)</small></label>
+      <div class="controls"><button id="getDocBtn" class="run-btn">Run</button></div>
+      <div id="getDocConsole"></div>
+    </div>
+
+    <!-- findMany (predicate via where helper) -->
+    <div class="card">
+      <label><strong>findMany</strong>
+        <small>{ "col": "todos", "where": { "field": "assignedTo", "op": "eq", "value": "u-alice" } }</small>
+      </label>
+      <textarea id="findManyInput">{ "col": "todos", "where": { "field": "assignedTo", "op": "eq", "value": "u-alice" } }</textarea>
+      <div class="controls"><button id="findManyBtn" class="run-btn">Run</button></div>
+      <div id="findManyConsole"></div>
+    </div>
+
+    <!-- findOne (predicate via where helper) -->
+    <div class="card">
+      <label><strong>findOne</strong>
+        <small>{ "col": "users", "where": { "field": "name", "op": "eq", "value": "Alice" } }</small>
+      </label>
+      <textarea id="findOneInput">{ "col": "users", "where": { "field": "name", "op": "eq", "value": "Alice" } }</textarea>
+      <div class="controls"><button id="findOneBtn" class="run-btn">Run</button></div>
+      <div id="findOneConsole"></div>
+    </div>
+
+    <!-- insertOne -->
+    <div class="card">
+      <label><strong>insertOne</strong>
+        <small>{ "col": "todos", "data": { "title": "From console", "done": false, "assignedTo": "u-bob", "projectId":"p-1", "tagIds":[], "subtasks":[], "commentIds":[] } }</small>
+      </label>
+      <textarea id="insertInput">{ "col": "todos", "data": { "title": "From console", "done": false, "assignedTo": "u-bob", "projectId":"p-1", "tagIds":[], "subtasks":[], "commentIds":[] } }</textarea>
+      <div class="controls"><button id="insertBtn" class="run-btn">Run</button></div>
+      <div id="insertConsole"></div>
+    </div>
+
+    <!-- updateOne -->
+    <div class="card">
+      <label><strong>updateOne</strong>
+        <small>// id will be filled with a valid demo todo</small>
+      </label>
+      <textarea id="updateInput">{ "col": "todos", "id": "<todoId>", "patch": { "done": true } }</textarea>
+      <div class="controls"><button id="updateBtn" class="run-btn">Run</button></div>
+      <div id="updateConsole"></div>
+    </div>
+
+    <!-- deleteOne -->
+    <div class="card">
+      <label><strong>deleteOne</strong>
+        <small>// id will be filled with a valid demo tag; re-Boot to recreate it</small>
+      </label>
+      <textarea id="deleteInput">{ "col": "tags", "id": "<tagId>" }</textarea>
+      <div class="controls"><button id="deleteBtn" class="run-btn">Run</button></div>
+      <div id="deleteConsole"></div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Advanced CRUD</h2>
+  <div class="grid">
+    <!-- findManyBy (filter object) -->
+    <div class="card">
+      <label><strong>findManyBy</strong>
+        <small>{ "col": "todos", "filter": { "assignedTo": "u-alice", "done": false } }</small>
+      </label>
+      <textarea id="findManyByInput">{ "col": "todos", "filter": { "assignedTo": "u-alice", "done": false } }</textarea>
+      <div class="controls"><button id="findManyByBtn" class="run-btn">Run</button></div>
+      <div id="findManyByConsole"></div>
+    </div>
+
+    <!-- findOneBy (filter object) -->
+    <div class="card">
+      <label><strong>findOneBy</strong>
+        <small>// name will be filled with the demo tag's name</small>
+      </label>
+      <textarea id="findOneByInput">{ "col": "tags", "filter": { "name": "<tagName>" } }</textarea>
+      <div class="controls"><button id="findOneByBtn" class="run-btn">Run</button></div>
+      <div id="findOneByConsole"></div>
+    </div>
+
+    <!-- find (projection/sort/limit/skip) -->
+    <div class="card">
+      <label><strong>find</strong>
+        <small>{
+          "col":"todos",
+          "args":{"filter":{"done":false},"sort":{"title":1},"limit":3,"fields":{"id":1,"title":1}}
+        }</small>
+      </label>
+      <textarea id="findInput">{
+  "col": "todos",
+  "args": {
+    "filter": { "done": false },
+    "sort": { "title": 1 },
+    "limit": 3,
+    "fields": { "id": 1, "title": 1 }
+  }
+}</textarea>
+      <div class="controls"><button id="findBtn" class="run-btn">Run</button></div>
+      <div id="findConsole"></div>
+    </div>
+
+    <!-- updateOneOps -->
+    <div class="card">
+      <label><strong>updateOneOps</strong>
+        <small>// id will be filled with the demo todo id</small>
+      </label>
+      <textarea id="updateOpsInput">{
+  "col": "todos",
+  "id": "<todoId>",
+  "ops": { "$addToSet": { "tagIds": "<tagId>" }, "$set": { "done": true } }
+}</textarea>
+      <div class="controls"><button id="updateOpsBtn" class="run-btn">Run</button></div>
+      <div id="updateOpsConsole"></div>
+    </div>
+
+    <!-- upsertOne -->
+    <div class="card">
+      <label><strong>upsertOne</strong>
+        <small>{ "col":"tags","filter":{"name":"priority"},"data":{"name":"priority"} }</small>
+      </label>
+      <textarea id="upsertInput">{
+  "col": "tags",
+  "filter": { "name": "priority" },
+  "data": { "name": "priority" }
+}</textarea>
+      <div class="controls"><button id="upsertBtn" class="run-btn">Run</button></div>
+      <div id="upsertConsole"></div>
+    </div>
+
+    <!-- transact -->
+    <div class="card">
+      <label><strong>transact</strong>
+        <small>// JS body to run inside transact(doc => { ... })</small>
+      </label>
+      <textarea id="transactInput">
+// Adds tag t-batch-ls if missing and attaches it to first todo
+const t = doc.tags.find(x => x.id === "t-batch-ls");
+if (!t) doc.tags.push({ id: "t-batch-ls", name: "batch-ls" });
+if (doc.todos[0]) {
+  const set = new Set([...(doc.todos[0].tagIds || []), "t-batch-ls"]);
+  doc.todos[0].tagIds = Array.from(set);
+}
+      </textarea>
+      <div class="controls"><button id="transactBtn" class="run-btn">Run</button></div>
+      <div id="transactConsole"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createConsoleSink, gentleParse, buildPredicate, pretty } from "./demo-runner.js";
+    import * as api from "../tests/db-tracer.js";
+    import { localStorageAdapter } from "../scripts/adapters/localStorageAdapter.js";
+
+    import { findManyBy, findOneBy, find, updateOneOps, upsertOne } from "../scripts/db.js";
+
+    // Wire adapter + in-page state
+    api.useAdapter(localStorageAdapter);
+    const bootSink = createConsoleSink(document.getElementById("bootConsole"));
+    const stamp = document.getElementById("stamp");
+    const state = { demoTodoId: null, demoTagId: null, demoTagName: null };
+
+    async function ensureDemoTodo() {
+      // pick first todo or create one
+      const first = api.findMany("todos")[0];
+      if (first) return first.id;
+      const t = await api.insertOne("todos", {
+        title:"Demo todo", done:false, assignedTo:"u-alice",
+        projectId:"p-1", tagIds:[], subtasks:[], commentIds:[]
+      });
+      return t.id;
+    }
+
+    async function ensureDemoTag() {
+      // find an existing tag or upsert a deterministic demo tag
+      const existing = findOneBy("tags", { name: "demo-tag" });
+      if (existing) return { id: existing.id, name: existing.name };
+      const made = await upsertOne("tags", { name: "demo-tag" }, { name: "demo-tag" });
+      return { id: made.id, name: made.name };
+    }
+
+    function fillPlaceholders() {
+      // Fill any "<todoId>" / "<tagId>" / "<tagName>" placeholders with concrete values
+      const fields = [
+        "updateInput","deleteInput","updateOpsInput","findOneByInput"
+      ];
+      for (const id of fields) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.value = el.value
+          .replace(/<todoId>/g, state.demoTodoId)
+          .replace(/<tagId>/g, state.demoTagId)
+          .replace(/<tagName>/g, state.demoTagName);
+      }
+    }
+
+    async function bootNow(){
+      const doc = await api.boot();
+      // ensure demo entities exist and capture their IDs
+      state.demoTodoId = await ensureDemoTodo();
+      const tag = await ensureDemoTag();
+      state.demoTagId = tag.id;
+      state.demoTagName = tag.name;
+
+      // fill all placeholders with resolved IDs/names
+      fillPlaceholders();
+
+      stamp.textContent = "rev=" + doc.rev + " • updated " + new Date(doc.updatedAt).toLocaleString();
+      bootSink.log("Booted LocalStorage doc with " + (doc.users?.length ?? 0) + " users, " + (doc.todos?.length ?? 0) + " todos");
+      bootSink.log("Demo todo id = " + state.demoTodoId + " | Demo tag id = " + state.demoTagId + " (name=" + state.demoTagName + ")");
+    }
+    document.getElementById("bootBtn").addEventListener("click", bootNow);
+    await bootNow();
+
+    function hook(btnId, inputId, sinkId, runner){
+      const sink = createConsoleSink(document.getElementById(sinkId));
+      document.getElementById(btnId).addEventListener("click", async () => {
+        try { await runner(sink); } catch (e) { sink.log("ERROR: " + e.message); }
+      });
+    }
+
+    // --- BASIC ---
+    hook("getDocBtn", null, "getDocConsole", async (sink) => {
+      const doc = api.getDoc(); sink.log(pretty(doc));
+    });
+
+    hook("findManyBtn", "findManyInput", "findManyConsole", async (sink) => {
+      const { col, where } = gentleParse(document.getElementById("findManyInput").value);
+      const rows = api.findMany(col, buildPredicate(where)); sink.log(pretty(rows));
+    });
+
+    hook("findOneBtn", "findOneInput", "findOneConsole", async (sink) => {
+      const { col, where } = gentleParse(document.getElementById("findOneInput").value);
+      const row = api.findOne(col, buildPredicate(where)); sink.log(pretty(row));
+    });
+
+    hook("insertBtn", "insertInput", "insertConsole", async (sink) => {
+      const { col, data } = gentleParse(document.getElementById("insertInput").value);
+      const rec = await api.insertOne(col, data);
+      // refresh demo todo id to the latest (if we just added a todo)
+      if (col === "todos") state.demoTodoId = rec.id, fillPlaceholders();
+      sink.log(pretty(rec));
+    });
+
+    hook("updateBtn", "updateInput", "updateConsole", async (sink) => {
+      const { col, id, patch } = gentleParse(document.getElementById("updateInput").value);
+      const n = await api.updateOne(col, id, patch);
+      sink.log("updated=" + n);
+    });
+
+    hook("deleteBtn", "deleteInput", "deleteConsole", async (sink) => {
+      const { col, id } = gentleParse(document.getElementById("deleteInput").value);
+      const n = await api.deleteOne(col, id);
+      sink.log("deleted=" + n);
+      // If we deleted the demo tag, recreate it so subsequent examples work
+      if (col === "tags" && id === state.demoTagId && n === 1) {
+        const tag = await upsertOne("tags", { name: "demo-tag" }, { name: "demo-tag" });
+        state.demoTagId = tag.id; state.demoTagName = tag.name; fillPlaceholders();
+        sink.log("Recreated demo tag id=" + state.demoTagId);
+      }
+    });
+
+    // --- ADVANCED ---
+    hook("findManyByBtn", "findManyByInput", "findManyByConsole", async (sink) => {
+      const { col, filter } = gentleParse(document.getElementById("findManyByInput").value);
+      const rows = findManyBy(col, filter || {}); sink.log(pretty(rows));
+    });
+
+    hook("findOneByBtn", "findOneByInput", "findOneByConsole", async (sink) => {
+      const { col, filter } = gentleParse(document.getElementById("findOneByInput").value);
+      const row = findOneBy(col, filter || {}); sink.log(pretty(row));
+    });
+
+    hook("findBtn", "findInput", "findConsole", async (sink) => {
+      const { col, args } = gentleParse(document.getElementById("findInput").value);
+      const rows = find(col, args || {}); sink.log(pretty(rows));
+    });
+
+    hook("updateOpsBtn", "updateOpsInput", "updateOpsConsole", async (sink) => {
+      const { col, id, ops } = gentleParse(document.getElementById("updateOpsInput").value);
+      const n = await updateOneOps(col, id, ops || {});
+      const row = api.findOne(col, r => r.id === id);
+      sink.log(pretty({ updated: n, row }));
+    });
+
+    hook("upsertBtn", "upsertInput", "upsertConsole", async (sink) => {
+      const { col, filter, data } = gentleParse(document.getElementById("upsertInput").value);
+      const res = await upsertOne(col, filter || {}, data || {}); sink.log(pretty(res));
+    });
+
+    hook("transactBtn", "transactInput", "transactConsole", async (sink) => {
+      const body = document.getElementById("transactInput").value;
+      await api.transact(new Function("doc", body)); sink.log(pretty(api.getDoc()));
+    });
+  </script>
+</body>
+</html>

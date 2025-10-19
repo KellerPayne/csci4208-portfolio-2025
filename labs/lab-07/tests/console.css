@@ -1,0 +1,18 @@
+/* Simple console styles */
+.console {
+  background: #0b1020;
+  color: #cde3ff;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin: 0.5rem 0 1rem 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow: auto;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+h2.test-title { margin: 1.25rem 0 0.5rem; }
+hr.sep { border: none; border-top: 1px solid #e6e6e6; margin: 1rem 0; }
+li.ok{color: #0a7d32} li.fail{color:#b00020}
