@@ -1,4 +1,4 @@
-# <Capstone Planning & Specification, Frontend Design, Backend Design, Data Design> — <capstone-02><capstone-03><capstone-04><capstone-05>
+# Planning & Specification, Frontend Design, Backend Design, Data Design — <capstone-02><capstone-03><capstone-04><capstone-05>
 
 **Team repo:** [Keller's Capstone Repo](https://github.com/KellerPayne/csci4208-capstone-project-repo) 
 **Project (v2) board:** 

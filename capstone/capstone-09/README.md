@@ -1,4 +1,4 @@
-# <Capstone Final Project Full Demo> — <capstone-09>
+# Final Project Full Demo — <capstone-09>
 
 **Team repo:** [Keller's Capstone Repo](https://github.com/KellerPayne/csci4208-capstone-project-repo)
 **Project (v2) board:** <URL> [Sprint 4 Project Board](https://github.com/users/KellerPayne/projects/10)  
